@@ -1,0 +1,226 @@
+#!/bin/bash
+
+# ----------------------------------------------------------------------------------------
+# stats
+# Author: Linh Vu
+# Course: CS340-400 (Operating Systems), Summer 2016
+# Programming Assignment 1 (stats)				Due: 7/4/2016
+# Description: Calculates averages and medians of a number matrix, by row or column.
+#	Input may be read from stdin or file.
+# ----------------------------------------------------------------------------------------
+
+
+# 0. Notes to self
+# On syntax:
+#	$(...), `...` 	: evaluates command and returns output
+#	(space sep)		: output to array
+#	${array[@]}		: to iterate over array content (braces required)
+#	\(, \*, etc		: must be escaped for 'expr'
+#	$1, $2			: access passed command line arguments ($#: number of arguments)
+#
+# On parentheses: http://stackoverflow.com/questions/2188199/how-to-use-double-or-single-bracket-parentheses-curly-braces
+#	{...}	: to unambiguously identify variables (e.g. array)
+#	[[...]]	: enhanced test command; allows >/< instead of -gt/-lt
+#	((...))	: arithmetic operations, e.g.
+#			for ((i=0; i < 10; i++))
+#			echo $((a + b + (14 * c)))
+#
+# Commands used: cat, wc (word count), head, expr, cut, sort, tr
+#
+# How-to:
+#	-- Define and call functions?
+#		myFunc() {...}
+#		myFunc
+#	-- Append to an array?
+#		avg_arr=( )
+#		avg_arr+=($avg)
+#	-- Evaluate, then assign to variable:
+#		sum=$(expr $sum + $num)
+#		(( sum = sum + num ))								# equivalent
+#		avg=$(expr \( $sum + $num_cols / 2 \) / $num_cols)		
+#		(( avg = (sum + num_cols / 2) / num_cols ))			# equivalent
+
+
+# ----------------------------------------------------------------------------------------
+# 1. Setup: Define variables, constants, functions and set up error-handlers
+
+EXIT_SUCCESS=0
+EXIT_ERROR=1
+TMP_CREATED=0		# is a temp file created?
+
+# Assign temp file to hold input (format: tmp_[processID]). Filename might be changed 
+# later if user choose to read data from file
+input_fn="tmp_$$"
+
+# exitSuccess(): Deletes temp_file if needed and exits with success code.
+exitSuccess()
+{
+	if [[ $TMP_CREATED == 1 ]]; then
+		rm -f "tmp_$$"
+	fi
+	exit $EXIT_SUCCESS
+}
+
+# exitErr(): Deletes temp file if needed and exits with error code.
+exitErr()
+{
+	if [[ $TMP_CREATED == 1 ]]; then
+		rm -f "tmp_$$"
+	fi
+	exit $EXIT_ERROR
+}
+
+# usageErr(): Prints usage message to stderr, deletes temp file if needed, exits with error code.
+usageErr()
+{
+	echo "Usage: stats {-rows|-cols} [file]" 1>&2
+	exitErr
+}
+	
+# ioErr(): Prints IO message to stderr, deletes temp file if needed, exits with error code.
+ioErr()
+{
+	echo "stats: cannot read $input_fn" 1>&2
+	exitErr
+}
+
+# inputErr(): Prints empty file message to stderr, deletes temp file if needed, exits with error code.
+inputErr()
+{
+	echo "stats: no data in $input_fn" 1>&2
+	exitErr
+}
+
+# Catch interrupt, hangup, and terminate signals
+trap exitErr INT HUP TERM
+
+
+# ----------------------------------------------------------------------------------------
+# 2. Validate number of arguments
+
+# If zero arguments or more than 2 arguments passed, print usage error and exit
+if [[ $# == 0 || $# > 2 ]]; then
+	usageErr
+	
+# If exactly 1 argument passed (i.e. data being read via stdin),
+# dump stdin content into temp file and set TMP_CREATED flag
+elif [[ $# == 1 ]]; then
+	cat > $input_fn
+	TMP_CREATED=1
+
+# If exactly 2 arguments passed (i.e. data being read from file), update
+# input filename from temp file to 2nd argument (actual data filename)
+elif [[ $# == 2 ]]; then
+	input_fn=$2
+fi
+
+
+# ----------------------------------------------------------------------------------------
+# 3. Validate input data
+
+# If input file does not exist or is unreadable, print IO error and exit
+if [[ ! -r $input_fn ]]; then
+	ioErr
+fi
+
+# Get number of rows and columns from input file
+num_rows=$(cat $input_fn | wc -l)
+num_cols=$(head -n 1 $input_fn | wc -w)
+
+# If input file has 0 rows, print IO error and exit
+if [[ $num_rows == 0 ]]; then
+	inputErr
+fi
+
+
+# ----------------------------------------------------------------------------------------
+# 4. Actual computation
+
+# If first argument is -r*, process row stats
+if [[ $1 == -r* ]]; then
+    printf "Average\tMedian\n"
+    
+    # Process row one by one
+	while read row; do
+	
+		# Sort current row, output to array
+		sorted_row=($(echo $row | tr " " "\n" | sort -n | tr "\n" " "))
+		
+		# Compute average
+		sum=0
+		for num in ${sorted_row[@]}; do
+			(( sum = sum + num ))
+		done
+		(( avg = (sum + num_cols / 2) / num_cols ))		# halves round up
+	
+		# Compute median
+		(( mid = num_cols / 2 ))
+		median=${sorted_row[$mid]}
+		if [[ $((num_cols % 2)) == 0 ]]; then			# if two medians, take larger
+			median2=${sorted_row[$mid-1]}
+			if [[ $median2 > $median ]]; then
+				median=$median2
+			fi
+		fi	
+		
+		# Output average and median to screen
+		printf "$avg \t $median"
+		echo
+		
+	done < $input_fn
+   
+ 
+# If first argument is -c*, process column stats
+elif [[ $1 == -c* ]]; then
+
+	# Create empty arrays to hold column average and median
+	avg_arr=( )
+	median_arr=( )
+	
+	# Process columns one by one
+	for (( i=1; i<=$num_cols; i++ )); do
+	
+		# Sort current column, output to array
+		sorted_col=($(cut -f $i < $input_fn | tr " " "\n" | sort -n | tr "\n" " "))
+	
+		# Compute average
+		sum=0
+		for num in ${sorted_col[@]}; do
+			(( sum = sum + num ))
+		done
+		(( avg = (sum + num_rows / 2) / num_rows ))		# halves round up
+		avg_arr+=($avg)			# add current result to array
+	
+		# Compute median
+		(( mid = num_rows / 2 ))
+		median=${sorted_col[$mid]}
+		if [[ $((num_rows % 2)) == 0 ]]; then			# if two medians, take larger
+			median2=${sorted_col[$mid-1]}
+			if [[ $median2 > $median ]]; then
+				median=$median2
+			fi
+		fi	
+		median_arr+=($median)		# add current result to array
+	done
+
+	# Output average and median to screen
+	printf "Average:\n"
+	for num in ${avg_arr[@]}; do
+		printf "$num \t"
+	done
+	echo
+	printf "Median:\n"
+	for num in ${median_arr[@]}; do
+		printf "$num \t"
+	done
+	echo
+	
+	
+# If first argument is not -r* or -c*, print usage error and exit
+else
+	usageErr
+fi
+
+
+# If program hits this point, clean temp file and exit with success code
+exitSuccess
