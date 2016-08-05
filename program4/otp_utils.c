@@ -134,29 +134,29 @@ void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_S
 	memset(content, '\0', BUFFER_SIZE);
 
 	/* If error opening file, write error to msg */
-    file = fopen(fn, "r");
-    if (!(file))
-    	sprintf(msg, "ERROR: opening file %s", fn);
+	file = fopen(fn, "r");
+	if (!(file))
+		sprintf(msg, "ERROR: opening file %s", fn);
 
-    /* If error reading file, write error to msg */
-    else if (fgets(content, BUFFER_SIZE, file) < 0)
-    	sprintf(msg, "ERROR: reading file %s", fn);
+	/* If error reading file, write error to msg */
+	else if (fgets(content, BUFFER_SIZE, file) < 0)
+		sprintf(msg, "ERROR: reading file %s", fn);
 
-    /* If invalid characters, write error to msg */
-    else {
-    	strtok(content, "\n");	// strip terminating newline
-	    for (i = 0; i < strlen(content); i++) {
-	    	if ((content[i] < 65 || content[i] > 90) && content[i] != 32) {
-	        	sprintf(msg, "ERROR: invalid characters in file %s", fn);
-	    		break;
-	    	}
-	    }
-    }
+	/* If invalid characters, write error to msg */
+	else {
+		strtok(content, "\n");	// strip terminating newline
+		for (i = 0; i < strlen(content); i++) {
+			if ((content[i] < 65 || content[i] > 90) && content[i] != 32) {
+				sprintf(msg, "ERROR: invalid characters in file %s", fn);
+				break;
+			}
+		}
+	}
 
-    /* Clean up */
-    if (strlen(msg) > 0)
-    	memset(content, '\0', BUFFER_SIZE);
-    fclose(file);
+	/* Clean up */
+	if (strlen(msg) > 0)
+		memset(content, '\0', BUFFER_SIZE);
+	fclose(file);
 }
 
 

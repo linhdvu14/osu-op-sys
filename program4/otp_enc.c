@@ -12,55 +12,53 @@
 
 
 int main(int argc, char *argv[]) {
-    int sockfd, portno, n, idx;
-    struct sockaddr_in server;
-    struct hostent *server_ip_addr;
+	int sockfd, portno, n, idx;
+	struct sockaddr_in server;
+	struct hostent *server_ip_addr;
 
-    char buffer[BUFFER_SIZE];
-    char plaintext_fn[BUFFER_SIZE], key_fn[BUFFER_SIZE];
-    char c;
-    char delim_s = '\x2', delim_e = '\x3';
-
-
-    /* Check number of arguments */
-    if (argc < 4) {
-       fprintf(stderr, "Usage: %s plaintext key port\n", argv[0]);
-       exit(1);
-    }
-
-    /* Read info from command args */
-    portno = atoi(argv[3]);
-    strcpy(plaintext_fn, argv[1]);
-    strcpy(key_fn, argv[2]);
+	char buffer[BUFFER_SIZE];
+	char plaintext_fn[BUFFER_SIZE], key_fn[BUFFER_SIZE];
+	char c;
+	char delim_s = '\x2', delim_e = '\x3';
 
 
-    /* Create socket */
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0)
-        exitErr("ERROR: creating socket\n");
+	/* Check number of arguments */
+	if (argc < 4) {
+		fprintf(stderr, "Usage: %s plaintext key port\n", argv[0]);
+		exit(1);
+	}
+
+	/* Read info from command args */
+	portno = atoi(argv[3]);
+	strcpy(plaintext_fn, argv[1]);
+	strcpy(key_fn, argv[2]);
 
 
-    /* Configure server */
-    server_ip_addr = gethostbyname("localhost");
-    memset(&server, '\0', sizeof(server));
-    server.sin_family = AF_INET;
-    server.sin_port = htons(portno);
-    memcpy(&server.sin_addr, server_ip_addr->h_addr, server_ip_addr->h_length);
+	/* Create socket */
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0)
+		exitErr("ERROR: creating socket\n");
 
 
-    /* Connect to server */
-    if (connect(sockfd, (struct sockaddr *) &server, sizeof(server)) < 0) {
-        fprintf(stderr, "ERROR: connecting to server\n");
-        exit(1);
-    }
+	/* Configure server */
+	server_ip_addr = gethostbyname("localhost");
+	memset(&server, '\0', sizeof(server));
+	server.sin_family = AF_INET;
+	server.sin_port = htons(portno);
+	memcpy(&server.sin_addr, server_ip_addr->h_addr, server_ip_addr->h_length);
 
 
-    /* Write plaintext_fn to socket */
+	/* Connect to server */
+	if (connect(sockfd, (struct sockaddr *) &server, sizeof(server)) < 0) {
+		fprintf(stderr, "ERROR: connecting to server\n");
+		exit(1);
+	}
+
+
+	/* Write plaintext_fn to socket */
 	do {
 		n = writeSocketDelim(sockfd, plaintext_fn, &delim_s, &delim_e);
 	} while (n != 0);
-
-
 
 	/* Read plaintext from socket */
 	do {
@@ -69,7 +67,7 @@ int main(int argc, char *argv[]) {
 	printf("Client: receive plaintext '%s'\n", buffer);
 
 
-    /* Write key_fn to socket */
+	/* Write key_fn to socket */
 	do {
 		n = writeSocketDelim(sockfd, key_fn, &delim_s, &delim_e);
 	} while (n != 0);
@@ -96,8 +94,8 @@ int main(int argc, char *argv[]) {
 	printf("Client: receive plaintext '%s'\n", buffer);
 
 
-    /* Clean up */
-    close(sockfd);
-    return 0;
+	/* Clean up */
+	close(sockfd);
+	return 0;
 
 }
