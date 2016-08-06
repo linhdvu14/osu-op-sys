@@ -1,9 +1,9 @@
 /*********************************************************************
-** otp_enc_d.c
+** otp_dec_d.c
 ** Author: Linh Vu
 ** Course: CS340-400 (Operating Systems), Summer 2016
 ** Programming Assignment 4 (OTP)		Due: 8/10/2016
-** Description: Encryption daemon.
+** Description: Decryption daemon.
 *********************************************************************/
 
 #include "otp_utils.h"
@@ -65,10 +65,10 @@ int main(int argc, char *argv[]) {
 		/* In child: Continue handling new connection */
 
 		/* Validate connection identity. If connection not from
-		 * otp_enc, write error msg to client and break.
+		 * otp_dec, write error msg to client and break.
 		 */
 		safeRead(client_sockfd, buffer, &delim_s, &delim_e);
-		if (strcmp(buffer, "otp_enc") != 0) {
+		if (strcmp(buffer, "otp_dec") != 0) {
 			sprintf(msg, "ERROR: cannot contact server on port %d\n", portno);
 			safeWrite(client_sockfd, msg, &delim_s, &delim_e);
 			errno = 1;
@@ -109,10 +109,10 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 
-		/* Encrypt text, write result to client,
+		/* Decrypt text, write result to client,
 		 * and exit.
 		 */
-		encryptText(intext, outtext, key);
+		decryptText(intext, outtext, key);
 		safeWrite(client_sockfd, outtext, &delim_s, &delim_e);
 		break;
 	}
