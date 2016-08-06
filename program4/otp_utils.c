@@ -3,15 +3,13 @@
 ** Author: Linh Vu
 ** Course: CS340-400 (Operating Systems), Summer 2016
 ** Programming Assignment 4 (OTP)		Due: 8/10/2016
-** Description: Utilities files.
+** Description: Utility functions.
 ** Sources consulted:
 ** 	http://stackoverflow.com/questions/19127398/socket-programming-read-is-reading-all-of-my-writes
 ** 	http://stackoverflow.com/questions/15384518/how-many-bytes-can-i-write-at-once-on-a-tcp-socket
 *********************************************************************/
 
-
 #include "otp_utils.h"
-
 
 
 /*********************************************************************
@@ -19,30 +17,67 @@
 * Description: Exit with code 1 and write error msg to stderr
 * Params:
 *	msg: string of error message
+*	errno: error number
 * Returns: None.
 *********************************************************************/
-void exitErr(const char* msg) {
+void exitErr(const char* msg, int errno) {
 	fprintf(stderr, "%s", msg);
-	exit(1);
+	exit(errno);
 }
 
 
 /*********************************************************************
-* writeSocketDelim()
+* safeWrite()
+* Description: Loop version of delimWrite().
+* Params:
+* 	sockfd: file descriptor of socket
+* 	buffer: message to be sent
+* 	delim_s: delim character signaling STX
+*	delim_e: delim character signaling ETX
+* Returns: None
+*********************************************************************/
+void safeWrite(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e) {
+	int n;
+	do {
+		n = delimWrite(sockfd, buffer, delim_s, delim_e);
+	} while (n != 0);
+}
+
+
+/*********************************************************************
+* safeRead()
+* Description: Loop version of delimRead()
+* Params:
+* 	sockfd: file descriptor of socket
+* 	buffer: buffer to write msg to
+* 	delim_s: delim character signaling STX
+*	delim_e: delim character signaling ETX
+* Returns: 0 if read successful, 1 otherwise.
+*********************************************************************/
+void safeRead(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e) {
+	int n;
+	do {
+		n = delimRead(sockfd, buffer, delim_s, delim_e);
+	} while (n != 0);
+}
+
+
+/*********************************************************************
+* delimWrite()
 * Description: Deliminates message and writes to socket. Loops until
 * 	full message finishes writing. Terminates if network error.
 * Params:
 * 	sockfd: file descriptor of socket
-* 	msg: message to be sent
+* 	buffer: message to be sent
 * 	delim_s: delim character signaling STX
 *	delim_e: delim character signaling ETX
 * Returns: 0 if write successful, 1 otherwise.
 *********************************************************************/
-int writeSocketDelim(int sockfd, char* msg, char* delim_s, char* delim_e) {
+int delimWrite(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e) {
 	int n;
 	int bytes_written = 0;
 
-	/* Write starting delim char */
+	/* Write start delim char */
 	do {
 		n = write(sockfd, delim_s, 1);
 		if (n < 0)
@@ -50,14 +85,14 @@ int writeSocketDelim(int sockfd, char* msg, char* delim_s, char* delim_e) {
 	} while (n != 1);
 
 	/* Write message */
-	while (bytes_written != strlen(msg)) {
-		n = write(sockfd, &msg[bytes_written], strlen(msg) - bytes_written);
+	while (bytes_written != strlen(buffer)) {
+		n = write(sockfd, &buffer[bytes_written], strlen(buffer) - bytes_written);
 		if (n < 0)
 			exit(1);
 		bytes_written += n;
 	}
 
-	/* Write ending delim char */
+	/* Write end delim char */
 	do {
 		n = write(sockfd, delim_e, 1);
 		if (n < 0)
@@ -68,9 +103,8 @@ int writeSocketDelim(int sockfd, char* msg, char* delim_s, char* delim_e) {
 }
 
 
-
 /*********************************************************************
-* readSocketDelim()
+* delimRead()
 * Description: Reads deliminated message and writes to buffer. Loops
 * 	until full message read. Terminates if network error or message
 * 	not found.
@@ -81,16 +115,16 @@ int writeSocketDelim(int sockfd, char* msg, char* delim_s, char* delim_e) {
 *	delim_e: delim character signaling ETX
 * Returns: 0 if read successful, 1 otherwise.
 *********************************************************************/
-int readSocketDelim(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e) {
+int delimRead(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e) {
 	int n, buflen;
 	char c;
 
-	/* Look for starting delim */
+	/* Look for start delim char */
 	n = read(sockfd, &c, 1);
 	if (n < 0 || c != *delim_s)
 		exit(1);
 
-	/* Start delim found, read msg into buffer */
+	/* Start delim found, reset buffer and read msg */
 	memset(buffer, '\0', BUFFER_SIZE);
 	buflen = 0;
 	do {
@@ -101,7 +135,7 @@ int readSocketDelim(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* d
 				exit(1);
 		} while (n != 1);
 
-		/* Stop when reach ending delim */
+		/* Stop when reach end delim char */
 		if (c == *delim_e)
 			break;
 
@@ -112,7 +146,6 @@ int readSocketDelim(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* d
 
 	return 0;
 }
-
 
 
 /*********************************************************************
@@ -136,18 +169,18 @@ void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_S
 	/* If error opening file, write error to msg */
 	file = fopen(fn, "r");
 	if (!(file))
-		sprintf(msg, "ERROR: opening file %s", fn);
+		sprintf(msg, "ERROR: opening file '%s'\n", fn);
 
 	/* If error reading file, write error to msg */
 	else if (fgets(content, BUFFER_SIZE, file) < 0)
-		sprintf(msg, "ERROR: reading file %s", fn);
+		sprintf(msg, "ERROR: reading file '%s'\n", fn);
 
 	/* If invalid characters, write error to msg */
 	else {
 		strtok(content, "\n");	// strip terminating newline
 		for (i = 0; i < strlen(content); i++) {
 			if ((content[i] < 65 || content[i] > 90) && content[i] != 32) {
-				sprintf(msg, "ERROR: invalid characters in file %s", fn);
+				sprintf(msg, "ERROR: invalid characters in file '%s'\n", fn);
 				break;
 			}
 		}
@@ -158,7 +191,6 @@ void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_S
 		memset(content, '\0', BUFFER_SIZE);
 	fclose(file);
 }
-
 
 
 /*********************************************************************
@@ -191,8 +223,6 @@ char getCharFromCode(int c) {
 }
 
 
-
-
 /*********************************************************************
 * encryptText()
 * Description: Encrypts plaintext with provided key
@@ -213,10 +243,6 @@ void encryptText(char plaintext[BUFFER_SIZE], char key[BUFFER_SIZE], char cipher
 	for (i = 0; i < strlen(plaintext); i++) {
 		ciphercode = (getCodeFromChar(plaintext[i]) + getCodeFromChar(key[i])) % 27;
 		ciphertext[i] = getCharFromCode(ciphercode);
-//		printf("Encrypting char %d. Plain: %c (%d). Key: %c (%d). *Cipher: %c (%d)*\n", i,
-//				plaintext[i], getCodeFromChar(plaintext[i]),
-//				key[i], getCodeFromChar(key[i]),
-//				ciphertext[i], ciphercode);
 	}
 }
 
@@ -240,13 +266,6 @@ void decryptText(char plaintext[BUFFER_SIZE], char key[BUFFER_SIZE], char cipher
 	/* Decrypt */
 	for (i = 0; i < strlen(ciphertext); i++) {
 		plaincode = (getCodeFromChar(ciphertext[i]) - getCodeFromChar(key[i]) + 27) % 27;
-//		printf("Decrypting char %d. *Plain: %c (%d)*. Key: %c (%d). Cipher: %c (%d)\n", i,
-//				plaintext[i], plaincode,
-//				key[i], getCodeFromChar(key[i]),
-//				ciphertext[i], getCodeFromChar(ciphertext[i]));
 		plaintext[i] = getCharFromCode(plaincode);
 	}
 }
-
-
-

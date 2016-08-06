@@ -10,13 +10,13 @@ otp_enc_d.o: otp_enc_d.c otp_utils.h
 otp_utils.o: otp_utils.c otp_utils.h
 	gcc -c otp_utils.c
 
-client: otp_enc.o otp_utils.o
-	gcc -g otp_enc.o otp_utils.o -o client
+otp_enc: otp_enc.o otp_utils.o
+	gcc -g otp_enc.o otp_utils.o -o otp_enc
 
-server: otp_enc_d.o otp_utils.o
-	gcc -g otp_enc_d.o otp_utils.o -o server
+otp_enc_d: otp_enc_d.o otp_utils.o
+	gcc -g otp_enc_d.o otp_utils.o -o otp_enc_d
 
 clean:
 	rm -f *.o
 
-all: keygen client server clean
+all: keygen otp_enc otp_enc_d clean
