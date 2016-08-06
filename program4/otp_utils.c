@@ -28,7 +28,7 @@ void exitErr(const char* msg, int errno) {
 
 /*********************************************************************
 * safeWrite()
-* Description: Loop version of delimWrite().
+* Description: Loop version of delimWrite()
 * Params:
 * 	sockfd: file descriptor of socket
 * 	buffer: message to be sent
