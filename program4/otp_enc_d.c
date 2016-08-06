@@ -11,9 +11,8 @@
 
 int main(int argc, char *argv[]) {
 	int sockfd, client_sockfd, portno, cpid, cstatus;
-	socklen_t clilen;
-	char msg[BUFFER_SIZE], plaintext_fn[BUFFER_SIZE], key_fn[BUFFER_SIZE];
-	char plaintext[BUFFER_SIZE], key[BUFFER_SIZE], ciphertext[BUFFER_SIZE];
+	char msg[BUFFER_SIZE], buffer[BUFFER_SIZE];
+	char intext[BUFFER_SIZE], outtext[BUFFER_SIZE], key[BUFFER_SIZE];
 	struct sockaddr_in server, client;
 	char delim_s = '\x2', delim_e = '\x3';
 	int n;
@@ -25,7 +24,7 @@ int main(int argc, char *argv[]) {
 	/* Create socket */
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd < 0)
-		exitErr("ERROR: creating socket\n", 1);
+		exitErr("ERROR: socket()\n", 1);
 
 	/* Configure server */
 	memset(&server, '\0', sizeof(server));
@@ -36,86 +35,97 @@ int main(int argc, char *argv[]) {
 
 	/* Bind port to socket */
 	if (bind(sockfd, (struct sockaddr *) &server, sizeof(server)) < 0)
-		exitErr("ERROR: binding\n", 1);
+		exitErr("ERROR: bind()\n", 1);
 
 	/* Start listening and accepting */
 	listen(sockfd, QUEUE_SIZE);
-	clilen = sizeof(client);
 
 	while (1) {
-//		/* Clean up zombie children and reset buffer */
-//		while ((cpid = waitpid(-1, &cstatus, WNOHANG)) > 0) {
-//			if (WIFEXITED(cstatus))
-//				printf("background pid %d is done: exit value %d\n", cpid, WEXITSTATUS(cstatus));
-//		}
-////		do {
-////			cpid = waitpid(-1, &cstatus, WNOHANG);
-////		} while (cpid > 0);
+		/* Clean up zombie children and reset buffer */
+		do {
+			cpid = waitpid(-1, &cstatus, WNOHANG);
+		} while (cpid > 0);
 		memset(msg, '\0', BUFFER_SIZE);
 
 		/* Accept new connection */
-		client_sockfd = accept(sockfd, (struct sockaddr *) &client, &clilen);
+		client_sockfd = accept(sockfd, NULL, NULL);
 		if (client_sockfd < 0)
-			exitErr("ERROR: accepting\n", 1);
-//
-//		/* Fork child to handle new connection */
-//		pid_t spawnpid = fork();
-//		if (spawnpid == -1)
-//			exitErr("ERROR: forking\n", 1);
-//
-//		/* In parent: Move on */
-//		if (spawnpid > 0)
-//			continue;
-//
-//		/* In child: Continue handling new connection */
-//		printf("Server: in child pid %d\n", getpid());
+			exitErr("ERROR: accept()\n", 1);
 
-		/* Read plaintext_fn from socket. Attempt to open, read
-		 * and scan file for invalid characters. If error
-		 * occurs, write error msg to client and move on.
+		/* Fork child to handle new connection */
+		pid_t spawnpid = fork();
+		if (spawnpid == -1)
+			exitErr("ERROR: fork()\n", 1);
+
+		/* In parent: Move on */
+		if (spawnpid > 0)
+			continue;
+
+		/* In child: Continue handling new connection */
+
+		/* Validate connection identity. If connection not from
+		 * otp_enc, write error msg to client and exit.
 		 */
-		safeRead(client_sockfd, plaintext_fn, &delim_s, &delim_e);
-		readFile(plaintext_fn, plaintext, msg);
+		safeRead(client_sockfd, buffer, &delim_s, &delim_e);
+		if (strcmp(buffer, "otp_enc") != 0) {
+			sprintf(msg, "ERROR: cannot contact server on port %d\n", portno);
+			safeWrite(client_sockfd, msg, &delim_s, &delim_e);
+			close(client_sockfd);
+			close(sockfd);
+			exit(2);
+		}
+
+		/* Read text fn from socket. Attempt to open, read
+		 * and scan file for invalid characters. If error
+		 * occurs, write error msg to client and exit.
+		 */
+		safeRead(client_sockfd, buffer, &delim_s, &delim_e);
+		readFile(buffer, intext, msg);
 		if (strlen(msg) > 0) {
 			safeWrite(client_sockfd, msg, &delim_s, &delim_e);
-			continue;
+			close(client_sockfd);
+			close(sockfd);
+			exit(1);
 		}
 
-		/* Read key_fn from socket. Attempt to open, read
+		/* Read key fn from socket. Attempt to open, read
 		 * and scan file for invalid characters. If error
-		 * occurs, write error msg to client and move on.
+		 * occurs, write error msg to client and exit.
 		 */
-		safeRead(client_sockfd, key_fn, &delim_s, &delim_e);
-		readFile(key_fn, key, msg);
+		safeRead(client_sockfd, buffer, &delim_s, &delim_e);
+		readFile(buffer, key, msg);
 		if (strlen(msg) > 0) {
 			safeWrite(client_sockfd, msg, &delim_s, &delim_e);
-			continue;
+			close(client_sockfd);
+			close(sockfd);
+			exit(1);
 		}
 
-		/* If key shorter than plaintext, write error msg to
-		 * client and move on.
+		/* If key shorter than text, write error msg to
+		 * client and exit.
 		 */
-		if (strlen(plaintext) > strlen(key)) {
-			sprintf(msg, "ERROR: key '%s' too short\n", key_fn);
+		if (strlen(intext) > strlen(key)) {
+			sprintf(msg, "ERROR: key '%s' too short\n", buffer);
 			safeWrite(client_sockfd, msg, &delim_s, &delim_e);
-			continue;
+			close(client_sockfd);
+			close(sockfd);
+			exit(1);
 		}
 
-
-		/* Encrypt plaintext with key and write ciphertext
-		 * to client.
+		/* Encrypt text, write result to client,
+		 * and exit.
 		 */
-		encryptText(plaintext, key, ciphertext);
-		safeWrite(client_sockfd, ciphertext, &delim_s, &delim_e);
-
-
-		/* Clean up and exit */
-//		close(client_sockfd);
-//		close(sockfd);
-//		exit(0);
+		encryptText(intext, outtext, key);
+		safeWrite(client_sockfd, outtext, &delim_s, &delim_e);
+		close(client_sockfd);
+		close(sockfd);
+		exit(0);
 	}
 
 	/* Clean up */
+	do {
+		cpid = waitpid(-1, &cstatus, WNOHANG);
+	} while (cpid > 0);
 	close(client_sockfd);
 	close(sockfd);
 	exit(0);

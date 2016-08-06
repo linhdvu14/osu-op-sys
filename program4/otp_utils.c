@@ -169,11 +169,11 @@ void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_S
 	/* If error opening file, write error to msg */
 	file = fopen(fn, "r");
 	if (!(file))
-		sprintf(msg, "ERROR: opening file '%s'\n", fn);
+		sprintf(msg, "ERROR: cannot open file '%s'\n", fn);
 
 	/* If error reading file, write error to msg */
 	else if (fgets(content, BUFFER_SIZE, file) < 0)
-		sprintf(msg, "ERROR: reading file '%s'\n", fn);
+		sprintf(msg, "ERROR: cannot read file '%s'\n", fn);
 
 	/* If invalid characters, write error to msg */
 	else {
@@ -225,47 +225,47 @@ char getCharFromCode(int c) {
 
 /*********************************************************************
 * encryptText()
-* Description: Encrypts plaintext with provided key
+* Description: Encrypts input text with provided key
 * Params:
-*	plaintext: plaintext string
-*	key: key string; must be longer than plaintext
-*	ciphertext: location to store encrypted plaintext
-* Returns: None. ciphertext will be updated.
+*	intext: input plaintext
+*	key: key string; must be longer than intext
+*	outtext: location to store output ciphertext
+* Returns: None. outtext will be updated.
 *********************************************************************/
-void encryptText(char plaintext[BUFFER_SIZE], char key[BUFFER_SIZE], char ciphertext[BUFFER_SIZE]) {
+void encryptText(char intext[BUFFER_SIZE], char outtext[BUFFER_SIZE], char key[BUFFER_SIZE]) {
 	int i;
-	int ciphercode;
+	int outcode;
 
-	/* Reset ciphertext */
-	memset(ciphertext, '\0', BUFFER_SIZE);
+	/* Reset outtext */
+	memset(outtext, '\0', BUFFER_SIZE);
 
 	/* Encrypt */
-	for (i = 0; i < strlen(plaintext); i++) {
-		ciphercode = (getCodeFromChar(plaintext[i]) + getCodeFromChar(key[i])) % 27;
-		ciphertext[i] = getCharFromCode(ciphercode);
+	for (i = 0; i < strlen(intext); i++) {
+		outcode = (getCodeFromChar(intext[i]) + getCodeFromChar(key[i])) % 27;
+		outtext[i] = getCharFromCode(outcode);
 	}
 }
 
 
 /*********************************************************************
 * decryptText()
-* Description: Decrypts ciphertext with provided key
+* Description: Decrypts input text with provided key
 * Params:
-* plaintext: location to store decrypted ciphertext
-*	ciphertext: ciphertext string
-*	key: key string; must be longer than plaintext
-* Returns: None. plaintext will be updated.
+*	intext: input ciphertext
+*	key: key string; must be longer than intext
+*	outtext: location to store output plaintext
+* Returns: None. outtext will be updated.
 *********************************************************************/
-void decryptText(char plaintext[BUFFER_SIZE], char key[BUFFER_SIZE], char ciphertext[BUFFER_SIZE]) {
+void decryptText(char intext[BUFFER_SIZE], char outtext[BUFFER_SIZE], char key[BUFFER_SIZE]) {
 	int i;
-	int plaincode;
+	int outcode;
 
-	/* Reset plaintext */
-	memset(plaintext, '\0', BUFFER_SIZE);
+	/* Reset outtext */
+	memset(outtext, '\0', BUFFER_SIZE);
 
 	/* Decrypt */
-	for (i = 0; i < strlen(ciphertext); i++) {
-		plaincode = (getCodeFromChar(ciphertext[i]) - getCodeFromChar(key[i]) + 27) % 27;
-		plaintext[i] = getCharFromCode(plaincode);
+	for (i = 0; i < strlen(intext); i++) {
+		outcode = (getCodeFromChar(intext[i]) - getCodeFromChar(key[i]) + 27) % 27;
+		outtext[i] = getCharFromCode(outcode);
 	}
 }

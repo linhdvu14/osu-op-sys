@@ -36,8 +36,8 @@ void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_S
 int getCodeFromChar(char c);
 char getCharFromCode(int c);
 
-void encryptText(char plaintext[BUFFER_SIZE], char key[BUFFER_SIZE], char ciphertext[BUFFER_SIZE]);
-void decryptText(char plaintext[BUFFER_SIZE], char key[BUFFER_SIZE], char ciphertext[BUFFER_SIZE]);
+void encryptText(char intext[BUFFER_SIZE], char outtext[BUFFER_SIZE], char key[BUFFER_SIZE]);
+void decryptText(char intext[BUFFER_SIZE], char outtext[BUFFER_SIZE], char key[BUFFER_SIZE]);
 
 
 #endif /* OTP_UTILS_H_ */
