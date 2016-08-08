@@ -31,7 +31,7 @@ void safeRead(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e
 int delimWrite(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e);
 int delimRead(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e);
 
-void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_SIZE]);
+int readFile(char fn[BUFFER_SIZE], char buffer[BUFFER_SIZE], char msg[BUFFER_SIZE]);
 
 int charToNum(char c);
 char numToChar(int c);

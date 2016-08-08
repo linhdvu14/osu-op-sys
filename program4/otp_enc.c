@@ -14,8 +14,9 @@ int main(int argc, char *argv[]) {
 	struct sockaddr_in server;
 	struct hostent *server_ip_addr;
 
-	char buffer[BUFFER_SIZE];
+	char buffer[BUFFER_SIZE], msg[BUFFER_SIZE];
 	char text_fn[BUFFER_SIZE], key_fn[BUFFER_SIZE];
+	char text[BUFFER_SIZE], key[BUFFER_SIZE];
 	char delim_s = '\x2', delim_e = '\x3';
 
 	/* Check number of arguments */
@@ -28,6 +29,26 @@ int main(int argc, char *argv[]) {
 	strcpy(text_fn, argv[1]);
 	strcpy(key_fn, argv[2]);
 	portno = atoi(argv[3]);
+	
+	/* Open text file and scan for invalid characters.  
+	 * If error, write error msg to stderr and exit.
+	 */
+	if (readFile(text_fn, text, msg) != 0)
+		exitErr(msg, 1);	
+		
+	/* Open key file and scan for invalid characters.  
+	 * If error, write error msg to stderr and exit.
+	 */
+	if (readFile(key_fn, key, msg) != 0)
+		exitErr(msg, 1);	
+
+	/* If key shorter than text, write error msg  
+	 * to stderr and exit.
+	 */
+	if (strlen(text) > strlen(key)) {
+		sprintf(msg, "ERROR: key '%s' too short\n", key);
+		exitErr(msg, 1);	
+	}
 
 	/* Create socket */
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -49,9 +70,9 @@ int main(int argc, char *argv[]) {
 	strcpy(buffer, "otp_enc");
 	safeWrite(sockfd, buffer, &delim_s, &delim_e);
 
-	/* Write text fn and key fn to socket */
-	safeWrite(sockfd, text_fn, &delim_s, &delim_e);
-	safeWrite(sockfd, key_fn, &delim_s, &delim_e);
+	/* Write text and key to socket */
+	safeWrite(sockfd, text, &delim_s, &delim_e);
+	safeWrite(sockfd, key, &delim_s, &delim_e);
 
 	/* Read from socket and print out error msg or resulting text
 	 * as appropriate.
@@ -59,8 +80,7 @@ int main(int argc, char *argv[]) {
 	safeRead(sockfd, buffer, &delim_s, &delim_e);
 	if (strncmp(buffer, "ERROR: cannot contact server on port ", 37) == 0)
 		exitErr(buffer, 2);
-	if (strncmp(buffer, "ERROR: ", 7) == 0)
-		exitErr(buffer, 1);
+	
 	printf("%s\n", buffer);
 
 	/* Clean up */

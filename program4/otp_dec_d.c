@@ -75,41 +75,11 @@ int main(int argc, char *argv[]) {
 			break;
 		}
 
-		/* Read text fn from socket. Attempt to open, read
-		 * and scan file for invalid characters. If error
-		 * occurs, write error msg to client and break.
-		 */
-		safeRead(client_sockfd, buffer, &delim_s, &delim_e);
-		readFile(buffer, intext, msg);
-		if (strlen(msg) > 0) {
-			safeWrite(client_sockfd, msg, &delim_s, &delim_e);
-			errno = 1;
-			break;
-		}
+		/* Read text and key */
+		safeRead(client_sockfd, intext, &delim_s, &delim_e);
+		safeRead(client_sockfd, key, &delim_s, &delim_e);
 
-		/* Read key fn from socket. Attempt to open, read
-		 * and scan file for invalid characters. If error
-		 * occurs, write error msg to client and break.
-		 */
-		safeRead(client_sockfd, buffer, &delim_s, &delim_e);
-		readFile(buffer, key, msg);
-		if (strlen(msg) > 0) {
-			safeWrite(client_sockfd, msg, &delim_s, &delim_e);
-			errno = 1;
-			break;
-		}
-
-		/* If key shorter than text, write error msg to
-		 * client and break.
-		 */
-		if (strlen(intext) > strlen(key)) {
-			sprintf(msg, "ERROR: key '%s' too short\n", buffer);
-			safeWrite(client_sockfd, msg, &delim_s, &delim_e);
-			errno = 1;
-			break;
-		}
-
-		/* Decrypt text, write result to client,
+		/* Derypt text, write result to client,
 		 * and exit.
 		 */
 		decryptText(intext, outtext, key);
@@ -118,9 +88,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Clean up */
-	do {
-		cpid = waitpid(-1, &cstatus, WNOHANG);
-	} while (cpid > 0);
 	close(client_sockfd);
 	close(sockfd);
 	exit(errno);

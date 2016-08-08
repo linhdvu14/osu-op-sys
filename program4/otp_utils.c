@@ -71,7 +71,7 @@ void safeRead(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e
 * 	buffer: message to be sent
 * 	delim_s: delim character signaling STX
 *	delim_e: delim character signaling ETX
-* Returns: 0 if write successful, 1 otherwise.
+* Returns: 0 if success, 1 if failure.
 *********************************************************************/
 int delimWrite(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e) {
 	int n;
@@ -113,7 +113,7 @@ int delimWrite(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_
 * 	buffer: buffer to write msg to
 * 	delim_s: delim character signaling STX
 *	delim_e: delim character signaling ETX
-* Returns: 0 if read successful, 1 otherwise.
+* Returns: 0 if success, 1 if failure.
 *********************************************************************/
 int delimRead(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e) {
 	int n, buflen;
@@ -150,46 +150,48 @@ int delimRead(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e
 
 /*********************************************************************
 * readFile()
-* Description: Attempt to open and read content of file (except last
-* 	newline character)
+* Description: Attempts to open and read content of file (except last
+* 	newline character). Prints error msg to msg.
 * Params:
 *	fn: filename to be read
-*	content: where to store file content
+*	buffer: where to store file content
 *	msg: where to store error message
-* Returns: None. content and msg will be updated.
+* Returns: 0 if success, 1 if failure.
 *********************************************************************/
-void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_SIZE]) {
+int readFile(char fn[BUFFER_SIZE], char buffer[BUFFER_SIZE], char msg[BUFFER_SIZE]) {
 	FILE* file;
 	int i;
 
-	/* Reset content and msg */
+	/* Reset buffer and msg */
 	memset(msg, '\0', BUFFER_SIZE);
-	memset(content, '\0', BUFFER_SIZE);
+	memset(buffer, '\0', BUFFER_SIZE);
 
 	/* If error opening file, write error to msg */
 	file = fopen(fn, "r");
-	if (!(file))
+	if (!(file)) {
 		sprintf(msg, "ERROR: cannot open file '%s'\n", fn);
+		return 1;	
+	}
 
 	/* If error reading file, write error to msg */
-	else if (fgets(content, BUFFER_SIZE, file) < 0)
+	if (fgets(buffer, BUFFER_SIZE, file) < 0) {
 		sprintf(msg, "ERROR: cannot read file '%s'\n", fn);
+		return 1;	
+	}
 
 	/* If invalid characters, write error to msg */
-	else {
-		strtok(content, "\n");	// strip terminating newline
-		for (i = 0; i < strlen(content); i++) {
-			if ((content[i] < 65 || content[i] > 90) && content[i] != 32) {
-				sprintf(msg, "ERROR: invalid characters in file '%s'\n", fn);
-				break;
-			}
+	strtok(buffer, "\n");	// strip terminating newline
+	for (i = 0; i < strlen(buffer); i++) {
+		if ((buffer[i] < 65 || buffer[i] > 90) && buffer[i] != 32) {
+			sprintf(msg, "ERROR: invalid characters in file '%s'\n", fn);
+			memset(buffer, '\0', BUFFER_SIZE);
+			return 1;	
 		}
 	}
 
 	/* Clean up */
-	if (strlen(msg) > 0)
-		memset(content, '\0', BUFFER_SIZE);
 	fclose(file);
+	return 0;
 }
 
 
@@ -198,7 +200,7 @@ void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_S
 * Description: Returns code of provided character, so that 'A'
 * 	is 0, 'B' is 1, ... 'Z' is 25, ' ' is 26.
 * Params:
-*	char: uppercase or space characters
+*	c: uppercase or space characters
 * Returns: Numeric code of provided character
 *********************************************************************/
 int charToNum(char c) {
@@ -213,7 +215,7 @@ int charToNum(char c) {
 * Description: Returns character corresponding to provided numeric code,
 * so that 'A' is 0, 'B' is 1, ... 'Z' is 25, ' ' is 26.
 * Params:
-*	code: number in range 0-26
+*	c: numeric code in range 0-26
 * Returns: Character corresponding to provided code
 *********************************************************************/
 char numToChar(int c) {
