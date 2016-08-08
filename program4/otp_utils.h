@@ -33,8 +33,8 @@ int delimRead(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e
 
 void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_SIZE]);
 
-int getCodeFromChar(char c);
-char getCharFromCode(int c);
+int charToNum(char c);
+char numToChar(int c);
 
 void encryptText(char intext[BUFFER_SIZE], char outtext[BUFFER_SIZE], char key[BUFFER_SIZE]);
 void decryptText(char intext[BUFFER_SIZE], char outtext[BUFFER_SIZE], char key[BUFFER_SIZE]);

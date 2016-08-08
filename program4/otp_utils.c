@@ -14,7 +14,7 @@
 
 /*********************************************************************
 * exitErr()
-* Description: Exit with code 1 and write error msg to stderr
+* Description: Exit with provided errno and write error msg to stderr
 * Params:
 *	msg: string of error message
 *	errno: error number
@@ -34,7 +34,7 @@ void exitErr(const char* msg, int errno) {
 * 	buffer: message to be sent
 * 	delim_s: delim character signaling STX
 *	delim_e: delim character signaling ETX
-* Returns: None
+* Returns: None.
 *********************************************************************/
 void safeWrite(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e) {
 	int n;
@@ -52,7 +52,7 @@ void safeWrite(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_
 * 	buffer: buffer to write msg to
 * 	delim_s: delim character signaling STX
 *	delim_e: delim character signaling ETX
-* Returns: 0 if read successful, 1 otherwise.
+* Returns: None.
 *********************************************************************/
 void safeRead(int sockfd, char buffer[BUFFER_SIZE], char* delim_s, char* delim_e) {
 	int n;
@@ -194,14 +194,14 @@ void readFile(char fn[BUFFER_SIZE], char content[BUFFER_SIZE], char msg[BUFFER_S
 
 
 /*********************************************************************
-* getCodeFromChar()
+* charToNum()
 * Description: Returns code of provided character, so that 'A'
 * 	is 0, 'B' is 1, ... 'Z' is 25, ' ' is 26.
 * Params:
 *	char: uppercase or space characters
 * Returns: Numeric code of provided character
 *********************************************************************/
-int getCodeFromChar(char c) {
+int charToNum(char c) {
 	if (c == 32)
 		return 26;
 	return c - 65;
@@ -209,14 +209,14 @@ int getCodeFromChar(char c) {
 
 
 /*********************************************************************
-* getCharFromCode()
+* numToChar()
 * Description: Returns character corresponding to provided numeric code,
 * so that 'A' is 0, 'B' is 1, ... 'Z' is 25, ' ' is 26.
 * Params:
 *	code: number in range 0-26
 * Returns: Character corresponding to provided code
 *********************************************************************/
-char getCharFromCode(int c) {
+char numToChar(int c) {
 	if (c == 26)
 		return ' ';
 	return c + 65;
@@ -241,8 +241,8 @@ void encryptText(char intext[BUFFER_SIZE], char outtext[BUFFER_SIZE], char key[B
 
 	/* Encrypt */
 	for (i = 0; i < strlen(intext); i++) {
-		outcode = (getCodeFromChar(intext[i]) + getCodeFromChar(key[i])) % 27;
-		outtext[i] = getCharFromCode(outcode);
+		outcode = (charToNum(intext[i]) + charToNum(key[i])) % 27;
+		outtext[i] = numToChar(outcode);
 	}
 }
 
@@ -265,7 +265,7 @@ void decryptText(char intext[BUFFER_SIZE], char outtext[BUFFER_SIZE], char key[B
 
 	/* Decrypt */
 	for (i = 0; i < strlen(intext); i++) {
-		outcode = (getCodeFromChar(intext[i]) - getCodeFromChar(key[i]) + 27) % 27;
-		outtext[i] = getCharFromCode(outcode);
+		outcode = (charToNum(intext[i]) - charToNum(key[i]) + 27) % 27;
+		outtext[i] = numToChar(outcode);
 	}
 }
