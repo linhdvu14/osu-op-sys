@@ -170,12 +170,14 @@ int readFile(char fn[BUFFER_SIZE], char buffer[BUFFER_SIZE], char msg[BUFFER_SIZ
 	file = fopen(fn, "r");
 	if (!(file)) {
 		sprintf(msg, "ERROR: cannot open file '%s'\n", fn);
+		fclose(file);
 		return 1;	
 	}
 
 	/* If error reading file, write error to msg */
 	if (fgets(buffer, BUFFER_SIZE, file) < 0) {
 		sprintf(msg, "ERROR: cannot read file '%s'\n", fn);
+		fclose(file);
 		return 1;	
 	}
 
@@ -185,6 +187,7 @@ int readFile(char fn[BUFFER_SIZE], char buffer[BUFFER_SIZE], char msg[BUFFER_SIZ
 		if ((buffer[i] < 65 || buffer[i] > 90) && buffer[i] != 32) {
 			sprintf(msg, "ERROR: invalid characters in file '%s'\n", fn);
 			memset(buffer, '\0', BUFFER_SIZE);
+			fclose(file);
 			return 1;	
 		}
 	}
